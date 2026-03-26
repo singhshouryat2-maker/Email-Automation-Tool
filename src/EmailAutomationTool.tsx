@@ -43,3 +43,42 @@ const actions = [
   { key: "schedule", label: "Schedule", icon: Clock3 },
   { key: "contacts", label: "Contacts", icon: UserRound },
 ];
+
+const starterFlows = [
+  {
+    name: "NST Daily Digest",
+    trigger: "Every weekday at 7:30 AM",
+    filter: "from:(@newtonschool.co OR @nst.edu) newer_than:1d",
+    action: "Summarize all Newton School of Technology emails",
+  },
+  {
+    name: "Admissions & Onboarding",
+    trigger: "On new email",
+    filter: 'subject:(admission OR onboarding OR orientation) from:(@newtonschool.co OR @nst.edu)',
+    action: "Label Important and mark unread",
+  },
+  {
+    name: "Class & Assignment Tracker",
+    trigger: "On new email",
+    filter: 'subject:(assignment OR project OR deadline OR class) from:(@newtonschool.co OR @nst.edu)',
+    action: "Label Academics",
+  },
+  {
+    name: "Placement & Internship Alerts",
+    trigger: "On new email",
+    filter: 'subject:(internship OR placement OR opportunity OR hiring) from:(@newtonschool.co OR @nst.edu)',
+    action: "Label Career",
+  },
+  {
+    name: "Fee & Payment Reminder",
+    trigger: "On new email",
+    filter: 'subject:(fee OR payment OR invoice OR receipt) from:(@newtonschool.co OR @nst.edu)',
+    action: "Label Finance and remind Shourya Singh",
+  },
+  {
+    name: "Event & Workshop Updates",
+    trigger: "Every evening at 6:00 PM",
+    filter: 'subject:(event OR workshop OR seminar OR hackathon) newer_than:1d',
+    action: "Summarize upcoming campus activities",
+  },
+];
