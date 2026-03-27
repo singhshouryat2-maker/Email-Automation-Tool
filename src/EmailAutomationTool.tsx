@@ -81,4 +81,77 @@ const starterFlows = [
     filter: 'subject:(event OR workshop OR seminar OR hackathon) newer_than:1d',
     action: "Summarize upcoming campus activities",
   },
-];
+];type ActionKey =
+  | "search"
+  | "read"
+  | "draft"
+  | "send"
+  | "forward"
+  | "archive"
+  | "delete"
+  | "label"
+  | "schedule"
+  | "contacts";
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border bg-white/80 p-4 shadow-sm">
+      <div className="text-sm text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
+    </div>
+  );
+}
+
+function ActionChip({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm shadow-sm">
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function FlowCard({
+  name,
+  trigger,
+  filter,
+  action,
+  onUse,
+}: {
+  name: string;
+  trigger: string;
+  filter: string;
+  action: string;
+  onUse: () => void;
+}) {
+  return (
+    <Card className="rounded-2xl border shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-base font-semibold">{name}</div>
+            <div className="mt-1 text-sm text-slate-500">{trigger}</div>
+          </div>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={onUse}>
+            Use
+          </Button>
+        </div>
+
+        <div className="mt-4 space-y-2 text-sm">
+          <div>
+            <span className="font-medium">Filter:</span> {filter}
+          </div>
+          <div>
+            <span className="font-medium">Action:</span> {action}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
