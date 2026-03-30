@@ -200,3 +200,110 @@ type EmailItem = {
   tags: string[];
   status: "new" | "processed" | "flagged";
 };
+const actionTypeMeta: Record<BuilderStepType, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+  summarize: { label: "Summarize", icon: Sparkles },
+  label: { label: "Apply Label", icon: Tags },
+  mark_unread: { label: "Mark Unread", icon: Mail },
+  draft_reply: { label: "Draft Reply", icon: Wand2 },
+  forward: { label: "Forward", icon: Forward },
+  archive: { label: "Archive", icon: Archive },
+  delete: { label: "Delete", icon: Trash2 },
+  notify: { label: "Notify", icon: Bell },
+  webhook: { label: "Webhook", icon: Zap },
+  delay: { label: "Delay", icon: Clock3 },
+};
+
+const initialEmails: EmailItem[] = [
+  {
+    id: "e1",
+    from: "placements@nst.edu",
+    subject: "New internship opportunity with partner startup",
+    preview: "Applications close Friday. Students from CSE and AI cohorts are encouraged to apply...",
+    time: "08:42",
+    tags: ["Career", "New"],
+    status: "new",
+  },
+  {
+    id: "e2",
+    from: "academics@newtonschool.co",
+    subject: "Assignment 4 deadline extended",
+    preview: "The DSA assignment deadline has been moved to Monday 11:59 PM due to lab overlap...",
+    time: "09:18",
+    tags: ["Academics"],
+    status: "processed",
+  },
+  {
+    id: "e3",
+    from: "finance@nst.edu",
+    subject: "Semester fee payment reminder",
+    preview: "This is a reminder that the next installment is due on the 10th. Please keep your receipt safe...",
+    time: "11:06",
+    tags: ["Finance", "Flagged"],
+    status: "flagged",
+  },
+  {
+    id: "e4",
+    from: "events@nst.edu",
+    subject: "Weekend hackathon registrations are open",
+    preview: "Join teams across campus for a 24-hour build sprint, mentorship, and sponsor prizes...",
+    time: "13:34",
+    tags: ["Events"],
+    status: "new",
+  },
+];
+
+const defaultFlows: AutomationFlow[] = [
+  {
+    id: "f1",
+    name: "NST Daily Digest",
+    enabled: true,
+    trigger: "daily",
+    scheduleText: "Weekdays • 7:30 AM",
+    query: "from:(@newtonschool.co OR @nst.edu) newer_than:1d",
+    scope: "workspace",
+    description: "Summarizes important academic, campus, and ops emails every morning.",
+    steps: [
+      { id: "s1", type: "summarize", config: { format: "bullet summary" } },
+      { id: "s2", type: "notify", config: { channel: "dashboard" } },
+    ],
+    processedToday: 18,
+    lastRun: "Today • 07:30",
+    successRate: 99,
+  },
+  {
+    id: "f2",
+    name: "Placement & Internship Alerts",
+    enabled: true,
+    trigger: "new_email",
+    scheduleText: "Instant",
+    query: "subject:(internship OR placement OR opportunity OR hiring) from:(@newtonschool.co OR @nst.edu)",
+    scope: "workspace",
+    description: "Auto-labels career updates, flags urgency, and keeps them visible.",
+    steps: [
+      { id: "s3", type: "label", config: { value: "Career" } },
+      { id: "s4", type: "mark_unread", config: { enabled: true } },
+      { id: "s5", type: "notify", config: { channel: "mobile" } },
+    ],
+    processedToday: 6,
+    lastRun: "Today • 08:42",
+    successRate: 96,
+  },
+  {
+    id: "f3",
+    name: "Fee & Payment Reminder",
+    enabled: false,
+    trigger: "new_email",
+    scheduleText: "Instant",
+    query: "subject:(fee OR payment OR invoice OR receipt) from:(@newtonschool.co OR @nst.edu)",
+    scope: "workspace",
+    description: "Keeps finance mails together and drafts reminder messages automatically.",
+    steps: [
+      { id: "s6", type: "label", config: { value: "Finance" } },
+      { id: "s7", type: "draft_reply", config: { tone: "formal" } },
+      { id: "s8", type: "notify", config: { channel: "email" } },
+    ],
+    processedToday: 2,
+    lastRun: "Yesterday • 18:14",
+    successRate: 94,
+  },
+];
