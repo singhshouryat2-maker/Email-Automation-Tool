@@ -419,3 +419,79 @@ function FlowOverviewCard({
     </motion.div>
   );
 }
+
+function BuilderStepEditor({
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="suggest">Suggestion only</SelectItem>
+                  <SelectItem value="auto">Auto-create draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : null}
+
+        {step.type === "summarize" ? (
+          <div className="space-y-2 md:col-span-2">
+            <Label>Summary instructions</Label>
+            <Textarea
+              value={String(step.config.format ?? "")}
+              onChange={(e) => onChange({ ...step, config: { ...step.config, format: e.target.value } })}
+              placeholder="Bullet summary with priority and next action"
+              className="min-h-[96px]"
+            />
+          </div>
+        ) : null}
+
+        {step.type === "forward" ? (
+          <>
+            <div className="space-y-2">
+              <Label>Forward to</Label>
+              <Input
+                value={String(step.config.to ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, to: e.target.value } })}
+                placeholder="name@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Note</Label>
+              <Input
+                value={String(step.config.note ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, note: e.target.value } })}
+                placeholder="FYI - automated forward"
+              />
+            </div>
+          </>
+        ) : null}
+
+        {step.type === "delay" ? (
+          <div className="space-y-2 md:col-span-2">
+            <Label>Delay before next step</Label>
+            <Input
+              value={String(step.config.duration ?? "15 minutes")}
+              onChange={(e) => onChange({ ...step, config: { ...step.config, duration: e.target.value } })}
+              placeholder="15 minutes"
+            />
+          </div>
+        ) : null}
+
+        {step.type === "webhook" ? (
+          <div className="space-y-2 md:col-span-2">
+            <Label>Webhook endpoint</Label>
+            <Input
+              value={String(step.config.url ?? "")}
+              onChange={(e) => onChange({ ...step, config: { ...step.config, url: e.target.value } })}
+              placeholder="https://example.com/hooks/email"
+            />
+          </div>
+        ) : null}
+
+        {["archive", "delete", "mark_unread"].includes(step.type) ? (
+          <div className="md:col-span-2 rounded-xl border bg-slate-50 p-3 text-sm text-slate-500">
+            This is a direct mailbox action. It will run automatically whenever the filter matches.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
