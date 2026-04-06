@@ -10,7 +10,7 @@ import {
   Tags,
   Clock3,
   Bell,
-  UserRound,
+  User,
   Plus,
   CheckCircle2,
   Wand2,
@@ -197,7 +197,7 @@ const actions = [
   { key: "delete", label: "Delete", icon: Trash2 },
   { key: "label", label: "Label", icon: Tags },
   { key: "schedule", label: "Schedule", icon: Clock3 },
-  { key: "contacts", label: "Contacts", icon: UserRound },
+  { key: "contacts", label: "Contacts", icon: User },
 ];
 
 const starterFlows = [
