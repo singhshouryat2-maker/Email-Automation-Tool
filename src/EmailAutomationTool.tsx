@@ -18,18 +18,174 @@ import {
   Calendar,
   ArrowRight,
   Sparkles,
+  Zap,
+  Eye,
+  Pause,
+  Play,
 } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+// Basic styled components to replace UI library
+const Card = ({ children, className = '' }: any) => (
+  <div className={`rounded-lg border border-gray-200 bg-white shadow ${className}`}>
+    {children}
+  </div>
+);
+
+const CardHeader = ({ children, className = '' }: any) => (
+  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>{children}</div>
+);
+
+const CardTitle = ({ children, className = '' }: any) => (
+  <h2 className={`text-lg font-semibold ${className}`}>{children}</h2>
+);
+
+const CardDescription = ({ children, className = '' }: any) => (
+  <p className={`text-sm text-gray-500 mt-1 ${className}`}>{children}</p>
+);
+
+const CardContent = ({ children, className = '' }: any) => (
+  <div className={`px-6 py-4 ${className}`}>{children}</div>
+);
+
+const Button = ({ children, variant = 'default', className = '', ...props }: any) => {
+  const variants = {
+    default: 'bg-blue-600 text-white hover:bg-blue-700',
+    secondary: 'bg-gray-200 hover:bg-gray-300',
+    outline: 'border border-gray-300 hover:bg-gray-50',
+  };
+  return (
+    <button
+      className={`px-4 py-2 rounded-md font-medium transition-colors ${variants[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ className = '', ...props }: any) => (
+  <input
+    className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+    {...props}
+  />
+);
+
+const Textarea = ({ className = '', ...props }: any) => (
+  <textarea
+    className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+    {...props}
+  />
+);
+
+const Badge = ({ children, variant = 'default', className = '' }: any) => {
+  const variants = {
+    default: 'bg-blue-100 text-blue-800',
+    secondary: 'bg-gray-100 text-gray-800',
+    outline: 'border border-gray-300',
+  };
+  return (
+    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${variants[variant]} ${className}`}>
+      {children}
+    </span>
+  );
+};
+
+const Switch = ({ checked = false, onCheckedChange }: any) => (
+  <button
+    onClick={() => onCheckedChange?.(!checked)}
+    className={`relative inline-block h-6 w-11 rounded-full transition-colors ${
+      checked ? 'bg-blue-600' : 'bg-gray-300'
+    }`}
+  >
+    <span
+      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
+        checked ? 'translate-x-6' : 'translate-x-1'
+      }`}
+    />
+  </button>
+);
+
+const Label = ({ children, className = '' }: any) => (
+  <label className={`text-sm font-medium text-gray-700 block mb-1 ${className}`}>{children}</label>
+);
+
+const Tabs = ({ children, defaultValue, ...props }: any) => {
+  const [active, setActive] = useState(defaultValue);
+  return (
+    <div {...props}>
+      {React.Children.map(children, (child: any) =>
+        React.isValidElement(child) ? React.cloneElement(child, { active, setActive } as any) : child
+      )}
+    </div>
+  );
+};
+
+const TabsList = ({ children, className = '' }: any) => (
+  <div className={`inline-flex gap-2 p-1 bg-gray-100 rounded-lg ${className}`} role="tablist">
+    {children}
+  </div>
+);
+
+const TabsTrigger = ({ value, children, active, setActive, className = '' }: any) => (
+  <button
+    onClick={() => setActive(value)}
+    className={`px-4 py-2 rounded-md font-medium transition-colors ${
+      active === value ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+    } ${className}`}
+  >
+    {children}
+  </button>
+);
+
+const TabsContent = ({ value, children, active, className = '' }: any) =>
+  active === value ? <div className={`mt-4 ${className}`}>{children}</div> : null;
+
+const Select = ({ children, value, onValueChange, ...props }: any) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div {...props}>
+      {React.Children.map(children, (child: any) =>
+        React.isValidElement(child)
+          ? React.cloneElement(child, { value, onValueChange, open, setOpen } as any)
+          : child
+      )}
+    </div>
+  );
+};
+
+const SelectTrigger = ({ children, open, setOpen, className = '' }: any) => (
+  <button
+    onClick={() => setOpen?.(!open)}
+    className={`w-full px-3 py-2 border border-gray-300 rounded-md text-left flex justify-between items-center ${className}`}
+  >
+    {children}
+  </button>
+);
+
+const SelectValue = ({ placeholder = 'Select...' }: any) => <span>{placeholder}</span>;
+
+const SelectContent = ({ children, open, setOpen, ...props }: any) =>
+  open ? (
+    <div className="absolute mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50" {...props}>
+      {React.Children.map(children, (child: any) =>
+        React.isValidElement(child) ? React.cloneElement(child, { setOpen } as any) : child
+      )}
+    </div>
+  ) : null;
+
+const SelectItem = ({ value, children, onValueChange, setOpen, className = '' }: any) => (
+  <button
+    onClick={() => {
+      onValueChange?.(value);
+      setOpen?.(false);
+    }}
+    className={`w-full px-3 py-2 text-left hover:bg-blue-50 text-sm ${className}`}
+  >
+    {children}
+  </button>
+);
+
+const Separator = ({ className = '' }: any) => <div className={`bg-gray-200 h-px w-full ${className}`} />;
 
 const actions = [
   { key: "search", label: "Search", icon: Search },
@@ -81,7 +237,9 @@ const starterFlows = [
     filter: 'subject:(event OR workshop OR seminar OR hackathon) newer_than:1d',
     action: "Summarize upcoming campus activities",
   },
-];type ActionKey =
+];
+
+type ActionKey =
   | "search"
   | "read"
   | "draft"
@@ -421,14 +579,61 @@ function FlowOverviewCard({
 }
 
 function BuilderStepEditor({
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="suggest">Suggestion only</SelectItem>
-                  <SelectItem value="auto">Auto-create draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
+  step,
+  onChange,
+}: {
+  step: BuilderStep;
+  onChange: (step: BuilderStep) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        {step.type === "label" ? (
+          <div className="space-y-2">
+            <Label>Label name</Label>
+            <Input
+              value={String(step.config.value ?? "")}
+              onChange={(e) => onChange({ ...step, config: { ...step.config, value: e.target.value } })}
+              placeholder="e.g., Important, Follow-up"
+            />
+          </div>
+        ) : null}
+
+        {step.type === "notify" ? (
+          <div className="space-y-2">
+            <Label>Notification channel</Label>
+            <Select
+              value={String(step.config.channel ?? "")}
+              onValueChange={(value) => onChange({ ...step, config: { ...step.config, channel: value } })}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue placeholder="Select channel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="mobile">Mobile push</SelectItem>
+                <SelectItem value="dashboard">Dashboard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+
+        {step.type === "draft_reply" ? (
+          <div className="space-y-2">
+            <Label>Draft mode</Label>
+            <Select
+              value={String(step.config.mode ?? "")}
+              onValueChange={(value) => onChange({ ...step, config: { ...step.config, mode: value } })}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue placeholder="Select mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="suggest">Suggestion only</SelectItem>
+                <SelectItem value="auto">Auto-create draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         ) : null}
 
         {step.type === "summarize" ? (
@@ -552,3 +757,102 @@ export default function EmailAutomationTool() {
       current.map((flow) => (flow.id === id ? { ...flow, enabled: !flow.enabled } : flow))
     );
   };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Email Automation</h1>
+          <p className="text-slate-600">Automate your email workflows with intelligent rules and actions.</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Stat label="Total processed" value={String(totalProcessed)} />
+          <Stat label="Active flows" value={String(activeCount)} />
+          <Stat label="Avg success rate" value={`${avgSuccess}%`} />
+        </div>
+
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 rounded-xl bg-white p-1">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="starter">Starter templates</TabsTrigger>
+            <TabsTrigger value="builder">Build new</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <Card className="rounded-2xl border shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Your automation flows
+                </CardTitle>
+                <CardDescription>Manage and monitor all your active workflows.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search workflows..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="rounded-xl"
+                  />
+                  <Select value={filterState} onValueChange={(value: any) => setFilterState(value)}>
+                    <SelectTrigger className="w-32 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-4">
+                  {filteredFlows.map((flow) => (
+                    <FlowOverviewCard key={flow.id} flow={flow} onToggle={toggleFlow} onSelect={setSelectedFlowId} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="starter" className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              {starterFlows.map((flow, i) => (
+                <FlowCard
+                  key={i}
+                  name={flow.name}
+                  trigger={flow.trigger}
+                  filter={flow.filter}
+                  action={flow.action}
+                  onUse={() => {
+                    setBuilderName(flow.name);
+                    setBuilderQuery(flow.filter);
+                  }}
+                />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="builder" className="space-y-6">
+            <Card className="rounded-2xl border shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Build a new workflow
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label>Workflow name</Label>
+                  <Input value={builderName} onChange={(e) => setBuilderName(e.target.value)} className="rounded-xl" />
+                </div>
+                <Button className="rounded-xl w-full">Create Workflow</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
