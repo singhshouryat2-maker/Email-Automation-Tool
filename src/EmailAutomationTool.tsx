@@ -103,8 +103,11 @@ const Label = ({ children, style = {}, ...props }: any) => (
   <label style={{ fontSize: '15px', fontWeight: 600, color: '#1f2937', display: 'block', marginBottom: '8px', lineHeight: '1.5', cursor: 'default', ...style }} {...props}>{children}</label>
 );
 
-const Tabs = ({ children, defaultValue, ...props }: any) => {
-  const [active, setActive] = useState(defaultValue);
+const Tabs = ({ children, defaultValue, value, onChange, ...props }: any) => {
+  const [internalActive, setInternalActive] = useState(defaultValue);
+  const active = value !== undefined ? value : internalActive;
+  const setActive = onChange || setInternalActive;
+  
   return (
     <div {...props}>
       {React.Children.map(children, (child: any) =>
@@ -728,6 +731,8 @@ export default function EmailAutomationTool() {
   const [selectedFlowId, setSelectedFlowId] = useState<string>(defaultFlows[0].id);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState<"all" | "active" | "paused">("all");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [builderName, setBuilderName] = useState("New automated workflow");
   const [builderTrigger, setBuilderTrigger] = useState<TriggerMode>("new_email");
@@ -792,7 +797,16 @@ export default function EmailAutomationTool() {
           <Stat label="Avg success rate" value={`${avgSuccess}%`} />
         </div>
 
-        <Tabs defaultValue="overview">
+        {successMessage && (
+          <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: '#10b981', color: 'white', padding: '16px 20px', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 100, animation: 'slideIn 0.3s ease-out' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', fontWeight: 500 }}>
+              <span style={{ fontSize: '18px' }}>✓</span>
+              {successMessage}
+            </div>
+          </div>
+        )}
+        
+        <Tabs value={activeTab} onChange={setActiveTab}>
           <TabsList style={{ width: '100%', gap: '12px' }}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="starter">Starter templates</TabsTrigger>
@@ -986,6 +1000,10 @@ export default function EmailAutomationTool() {
                     lastRun: "Never",
                   };
                   setFlows([...flows, newFlow]);
+                  setSuccessMessage(`✓ Workflow "${builderName}" created successfully!`);
+                  setTimeout(() => setSuccessMessage(""), 4000);
+                  setActiveTab("overview");
+                  
                   setBuilderName("New automated workflow");
                   setBuilderTrigger("new_email");
                   setBuilderScheduleText("Instant");
