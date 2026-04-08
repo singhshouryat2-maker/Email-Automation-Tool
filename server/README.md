@@ -80,8 +80,10 @@ Visit `http://localhost:5173`
 - `GET /api/auth/url` - Get OAuth login URL
 - `GET /api/auth/callback` - OAuth callback (handled by Google)
 - `POST /api/email/send` - Send an email
-- `GET /api/email/list` - List emails from user's Gmail
 - `GET /api/health` - Health check
+
+The OAuth flow is configured for send-only Gmail access to keep verification
+requirements simpler than inbox-reading access.
 
 ## Security Notes
 

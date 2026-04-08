@@ -146,7 +146,6 @@ Go to **"Build new"** tab and:
 | GET | `/api/auth/url` | Get OAuth login URL |
 | GET | `/api/auth/callback` | OAuth callback (automatic) |
 | POST | `/api/email/send` | Send an email |
-| GET | `/api/email/list` | List user's emails |
 | GET | `/api/health` | Server status check |
 
 ## 📧 Send Email API
@@ -179,6 +178,11 @@ Content-Type: application/json
 - Confirm you're logged in (email shown in header)
 - Check console (F12) for errors
 - Verify recipient email is valid
+
+**Google verification is hard**
+- The deployed app now requests send-only Gmail access instead of inbox-reading access
+- In Google Cloud, keep the OAuth client as a `Web application`
+- Make sure the deployed redirect URI matches Vercel exactly
 
 See [GMAIL_SETUP.md](./GMAIL_SETUP.md) for more troubleshooting.
 

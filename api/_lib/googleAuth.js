@@ -42,9 +42,9 @@ export function createOAuthClient(req) {
 }
 
 export async function getUserEmail(oauth2Client) {
-  const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-  const profile = await gmail.users.getProfile({ userId: 'me' });
-  return profile.data.emailAddress;
+  const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+  const profile = await oauth2.userinfo.get();
+  return profile.data.email;
 }
 
 export function createFrontendRedirect(req, userEmail) {

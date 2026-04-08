@@ -40,6 +40,12 @@ const oauth2Client = new google.auth.OAuth2(
   GMAIL_REDIRECT_URI
 );
 
+async function getUserEmailFromOAuth(authClient) {
+  const oauth2 = google.oauth2({ version: 'v2', auth: authClient });
+  const profile = await oauth2.userinfo.get();
+  return profile.data.email;
+}
+
 // Generate OAuth URL
 app.get('/api/auth/url', (req, res) => {
   if (!hasConfiguredGmailCredentials()) {
@@ -51,7 +57,6 @@ app.get('/api/auth/url', (req, res) => {
 
   const scopes = [
     'https://www.googleapis.com/auth/gmail.send',
-    'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/userinfo.email'
   ];
 
@@ -76,10 +81,7 @@ app.get('/api/auth/callback', async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Get user email
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-    const profile = await gmail.users.getProfile({ userId: 'me' });
-    const userEmail = profile.data.emailAddress;
+    const userEmail = await getUserEmailFromOAuth(oauth2Client);
 
     // Store tokens (in production, save to database with userEmail as key)
     tokenStore.set(userEmail, tokens);
@@ -147,47 +149,6 @@ async function sendEmailViaGmail(userEmail, to, subject, body, authClient) {
 
   return result.data.id;
 }
-
-// Get user emails (for filtering/preview)
-app.get('/api/email/list', async (req, res) => {
-  const { userEmail } = req.query;
-
-  try {
-    const tokens = tokenStore.get(userEmail);
-    if (!tokens) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    oauth2Client.setCredentials(tokens);
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
-    const result = await gmail.users.messages.list({
-      userId: 'me',
-      maxResults: 10
-    });
-
-    const messages = await Promise.all(
-      (result.data.messages || []).map(async (msg) => {
-        const fullMessage = await gmail.users.messages.get({
-          userId: 'me',
-          id: msg.id
-        });
-        const headers = fullMessage.data.payload.headers;
-        return {
-          id: msg.id,
-          from: headers.find(h => h.name === 'From')?.value || 'Unknown',
-          subject: headers.find(h => h.name === 'Subject')?.value || '(no subject)',
-          time: headers.find(h => h.name === 'Date')?.value || 'Unknown'
-        };
-      })
-    );
-
-    res.json({ emails: messages });
-  } catch (error) {
-    console.error('List emails error:', error);
-    res.status(500).json({ error: 'Failed to fetch emails' });
-  }
-});
 
 // Health check
 app.get('/api/health', (req, res) => {
