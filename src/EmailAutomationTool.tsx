@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -22,6 +22,8 @@ import {
   Eye,
   Pause,
   Play,
+  LogOut,
+  Check,
 } from "lucide-react";
 
 // Basic styled components using inline styles
@@ -355,7 +357,8 @@ type BuilderStepType =
   | "delete"
   | "notify"
   | "webhook"
-  | "delay";
+  | "delay"
+  | "send_email";
 
 type BuilderStep = {
   id: string;
@@ -398,6 +401,7 @@ const actionTypeMeta: Record<BuilderStepType, { label: string; icon: React.Compo
   notify: { label: "Notify", icon: Bell },
   webhook: { label: "Webhook", icon: Zap },
   delay: { label: "Delay", icon: Clock3 },
+  send_email: { label: "Send Email", icon: Send },
 };
 
 const initialEmails: EmailItem[] = [
@@ -714,6 +718,45 @@ function BuilderStepEditor({
           </div>
         ) : null}
 
+        {step.type === "send_email" ? (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Label>Recipient email</Label>
+              <Input
+                value={String(step.config.to ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, to: e.target.value } })}
+                placeholder="recipient@example.com"
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Label>Email subject</Label>
+              <Input
+                value={String(step.config.subject ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, subject: e.target.value } })}
+                placeholder="Email subject"
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', gridColumn: 'span 2' }}>
+              <Label>Email body</Label>
+              <Textarea
+                value={String(step.config.body ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, body: e.target.value } })}
+                placeholder="Email content"
+                style={{ minHeight: '120px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', gridColumn: 'span 2' }}>
+              <Label>Send time (optional)</Label>
+              <Input
+                type="datetime-local"
+                value={String(step.config.scheduleTime ?? "")}
+                onChange={(e) => onChange({ ...step, config: { ...step.config, scheduleTime: e.target.value } })}
+                placeholder="Leave empty to send immediately"
+              />
+            </div>
+          </>
+        ) : null}
+
         {["archive", "delete", "mark_unread"].includes(step.type) ? (
           <div style={{ gridColumn: 'span 2', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb', padding: '12px', fontSize: '14px', color: '#6b7280', lineHeight: '1.6' }}>
             This is a direct mailbox action. It will run automatically whenever the filter matches.
@@ -727,12 +770,64 @@ function BuilderStepEditor({
 
 export default function EmailAutomationTool() {
   const [flows, setFlows] = useState<AutomationFlow[]>(defaultFlows);
-  const [emails] = useState<EmailItem[]>(initialEmails);
+  const [emails, setEmails] = useState<EmailItem[]>(initialEmails);
   const [selectedFlowId, setSelectedFlowId] = useState<string>(defaultFlows[0].id);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState<"all" | "active" | "paused">("all");
   const [activeTab, setActiveTab] = useState("overview");
   const [successMessage, setSuccessMessage] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Check for auth success in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+    if (email) {
+      setUserEmail(email);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Try to get from localStorage
+      const savedEmail = localStorage.getItem("userEmail");
+      if (savedEmail) {
+        setUserEmail(savedEmail);
+      }
+    }
+  }, []);
+
+  // Handle Gmail login
+  const handleGmailLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/api/auth/url");
+      const data = await response.json();
+      if (!response.ok || !data.authUrl) {
+        throw new Error(data.error || "Failed to get Gmail auth URL.");
+      }
+
+      const { authUrl } = data;
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error("Failed to get auth URL:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to connect Gmail. Make sure the backend is running.";
+      setSuccessMessage(`❌ ${message}`);
+      setTimeout(() => setSuccessMessage(""), 6000);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setUserEmail(null);
+    localStorage.removeItem("userEmail");
+  };
+
+  // Save userEmail to localStorage
+  useEffect(() => {
+    if (userEmail) {
+      localStorage.setItem("userEmail", userEmail);
+    }
+  }, [userEmail]);
 
   const [builderName, setBuilderName] = useState("New automated workflow");
   const [builderTrigger, setBuilderTrigger] = useState<TriggerMode>("new_email");
@@ -747,6 +842,108 @@ export default function EmailAutomationTool() {
     { id: makeId("step"), type: "label", config: { value: "Important" } },
     { id: makeId("step"), type: "notify", config: { channel: "dashboard" } },
   ]);
+
+  // Helper function to check if an email matches a filter query
+  const emailMatchesFilter = (email: EmailItem, query: string): boolean => {
+    const queryLower = query.toLowerCase();
+    const emailStr = `${email.from} ${email.subject} ${email.preview}`.toLowerCase();
+    
+    // Simple pattern matching for common Gmail query syntax
+    if (queryLower.includes("from:")) {
+      const fromMatch = queryLower.match(/from:\(([^)]+)\)/);
+      if (fromMatch) {
+        const domains = fromMatch[1].split(" OR ").map(d => d.trim().replace(/[()@]/g, ""));
+        const matches = domains.some(domain => email.from.toLowerCase().includes(domain.toLowerCase()));
+        if (!matches) return false;
+      }
+    }
+    
+    if (queryLower.includes("subject:")) {
+      const subjectMatch = queryLower.match(/subject:\(([^)]+)\)/);
+      if (subjectMatch) {
+        const keywords = subjectMatch[1].split(" OR ").map(k => k.trim().replace(/[()]/g, ""));
+        const matches = keywords.some(keyword => email.subject.toLowerCase().includes(keyword.toLowerCase()));
+        if (!matches) return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Helper function to apply workflow steps to an email
+  const applyWorkflowSteps = (email: EmailItem, steps: BuilderStep[]): EmailItem => {
+    let updatedEmail = { ...email };
+    
+    for (const step of steps) {
+      switch (step.type) {
+        case "label":
+          if (step.config.value && !updatedEmail.tags.includes(String(step.config.value))) {
+            updatedEmail.tags = [...updatedEmail.tags, String(step.config.value)];
+          }
+          break;
+        case "mark_unread":
+          updatedEmail.status = "new";
+          break;
+        case "archive":
+          updatedEmail.status = "processed";
+          break;
+        case "delete":
+          updatedEmail.status = "flagged";
+          break;
+        case "notify":
+        case "draft_reply":
+        case "forward":
+        case "summarize":
+        case "webhook":
+        case "delay":
+          // These steps don't modify the email UI but still count as executed
+          break;
+      }
+    }
+    
+    return updatedEmail;
+  };
+
+  // Execute workflow: filter emails and apply steps
+  const executeWorkflowHelper = (flow: AutomationFlow) => {
+    const matchedEmails = emails.filter(email => emailMatchesFilter(email, flow.query));
+    
+    if (matchedEmails.length === 0) {
+      return; // No emails to process
+    }
+
+    // Apply workflow steps to matched emails
+    const updatedEmails = emails.map(email => {
+      if (emailMatchesFilter(email, flow.query)) {
+        return applyWorkflowSteps(email, flow.steps);
+      }
+      return email;
+    });
+
+    setEmails(updatedEmails);
+
+    // Calculate success rate (simulate 85-100% success)
+    const successRate = Math.floor(Math.random() * 16) + 85;
+    
+    // Get current time for last run
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const lastRun = `Today • ${timeStr}`;
+
+    // Update flow stats
+    setFlows(current =>
+      current.map(f =>
+        f.id === flow.id
+          ? {
+              ...f,
+              processedToday: (f.processedToday || 0) + matchedEmails.length,
+              lastRun,
+              successRate,
+            }
+          : f
+      )
+    );
+  };
 
   const selectedFlow = useMemo(
     () => flows.find((flow) => flow.id === selectedFlowId) ?? flows[0],
@@ -778,17 +975,87 @@ export default function EmailAutomationTool() {
   );
 
   const toggleFlow = (id: string) => {
-    setFlows((current) =>
-      current.map((flow) => (flow.id === id ? { ...flow, enabled: !flow.enabled } : flow))
+    const flow = flows.find(f => f.id === id);
+    if (!flow) return;
+    
+    const isTogglingOn = !flow.enabled;
+    
+    // Update flow enabled state
+    setFlows(current =>
+      current.map(f => (f.id === id ? { ...f, enabled: !f.enabled } : f))
     );
+    
+    // If toggling ON, execute the workflow
+    if (isTogglingOn) {
+      // Use the flow data directly to execute
+      const matchedEmails = emails.filter(email => emailMatchesFilter(email, flow.query));
+      
+      if (matchedEmails.length > 0) {
+        // Apply workflow steps to matched emails
+        const updatedEmails = emails.map(email => {
+          if (emailMatchesFilter(email, flow.query)) {
+            return applyWorkflowSteps(email, flow.steps);
+          }
+          return email;
+        });
+        
+        setEmails(updatedEmails);
+      }
+      
+      // Calculate success rate (simulate 85-100% success)
+      const successRate = Math.floor(Math.random() * 16) + 85;
+      
+      // Get current time for last run
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const lastRun = `Today • ${timeStr}`;
+      
+      // Update flow stats
+      setFlows(current =>
+        current.map(f =>
+          f.id === id
+            ? {
+                ...f,
+                processedToday: (f.processedToday || 0) + matchedEmails.length,
+                lastRun,
+                successRate,
+              }
+            : f
+        )
+      );
+      
+      setSuccessMessage(`✓ Workflow "${flow.name}" executed successfully!`);
+      setTimeout(() => setSuccessMessage(""), 4000);
+    }
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '32px 24px' }}>
       <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <h1 style={{ fontSize: '30px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>Email Automation</h1>
-          <p style={{ color: '#4b5563' }}>Automate your email workflows with intelligent rules and actions.</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+            <h1 style={{ fontSize: '30px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>Email Automation</h1>
+            <p style={{ color: '#4b5563' }}>Automate your email workflows with intelligent rules and actions.</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {userEmail ? (
+              <>
+                <div style={{ padding: '8px 16px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1e40af', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Check style={{ width: '16px', height: '16px' }} />
+                  {userEmail}
+                </div>
+                <Button variant="outline" style={{ padding: '8px 14px', fontSize: '13px' }} onClick={handleLogout}>
+                  <LogOut style={{ marginRight: '6px', width: '16px', height: '16px', display: 'inline' }} />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button style={{ padding: '10px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleGmailLogin}>
+                <Mail style={{ width: '16px', height: '16px' }} />
+                Connect Gmail
+              </Button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -999,7 +1266,43 @@ export default function EmailAutomationTool() {
                     successRate: 0,
                     lastRun: "Never",
                   };
+                  
                   setFlows([...flows, newFlow]);
+                  
+                  // If enabled, execute the workflow immediately
+                  if (builderEnabled) {
+                    const matchedEmails = emails.filter(email => emailMatchesFilter(email, newFlow.query));
+                    
+                    if (matchedEmails.length > 0) {
+                      const updatedEmails = emails.map(email => {
+                        if (emailMatchesFilter(email, newFlow.query)) {
+                          return applyWorkflowSteps(email, newFlow.steps);
+                        }
+                        return email;
+                      });
+                      
+                      setEmails(updatedEmails);
+                    }
+                    
+                    const successRate = Math.floor(Math.random() * 16) + 85;
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const lastRun = `Today • ${timeStr}`;
+                    
+                    setFlows(current =>
+                      current.map(f =>
+                        f.id === newFlow.id
+                          ? {
+                              ...f,
+                              processedToday: matchedEmails.length,
+                              lastRun,
+                              successRate,
+                            }
+                          : f
+                      )
+                    );
+                  }
+                  
                   setSuccessMessage(`✓ Workflow "${builderName}" created successfully!`);
                   setTimeout(() => setSuccessMessage(""), 4000);
                   setActiveTab("overview");
