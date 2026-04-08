@@ -820,6 +820,16 @@ export default function EmailAutomationTool() {
 
   // Handle logout
   const handleLogout = () => {
+    fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userEmail }),
+    }).catch(() => {
+      // Clearing local state is enough even if the logout request fails.
+    });
+
     setUserEmail(null);
     localStorage.removeItem("userEmail");
   };
@@ -844,6 +854,10 @@ export default function EmailAutomationTool() {
     { id: makeId("step"), type: "label", config: { value: "Important" } },
     { id: makeId("step"), type: "notify", config: { channel: "dashboard" } },
   ]);
+  const [sendTo, setSendTo] = useState("");
+  const [sendSubject, setSendSubject] = useState("");
+  const [sendBody, setSendBody] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   // Helper function to check if an email matches a filter query
   const emailMatchesFilter = (email: EmailItem, query: string): boolean => {
@@ -1031,6 +1045,57 @@ export default function EmailAutomationTool() {
     }
   };
 
+  const handleQuickSend = async () => {
+    if (!userEmail) {
+      setSuccessMessage("❌ Connect Gmail before sending an email.");
+      setTimeout(() => setSuccessMessage(""), 4000);
+      return;
+    }
+
+    if (!sendTo || !sendSubject || !sendBody) {
+      setSuccessMessage("❌ Fill in recipient, subject, and message first.");
+      setTimeout(() => setSuccessMessage(""), 4000);
+      return;
+    }
+
+    setIsSending(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/email/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userEmail,
+          to: sendTo,
+          subject: sendSubject,
+          body: sendBody,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send email.");
+      }
+
+      setSuccessMessage(`✓ Email sent from ${data.from || userEmail}!`);
+      setTimeout(() => setSuccessMessage(""), 4000);
+      setSendTo("");
+      setSendSubject("");
+      setSendBody("");
+      setActiveTab("send");
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to send email from the app.";
+      setSuccessMessage(`❌ ${message}`);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '32px 24px' }}>
       <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -1080,6 +1145,7 @@ export default function EmailAutomationTool() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="starter">Starter templates</TabsTrigger>
             <TabsTrigger value="builder">Build new</TabsTrigger>
+            <TabsTrigger value="send">Send email</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -1134,6 +1200,69 @@ export default function EmailAutomationTool() {
                 }}
               />
             ))}
+          </TabsContent>
+
+          <TabsContent value="send" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <Card>
+              <CardHeader>
+                <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Send style={{ width: '22px', height: '22px' }} />
+                  Send a real email
+                </CardTitle>
+                <CardDescription>
+                  Compose an email here and send it from the Gmail account connected to this tool.
+                </CardDescription>
+              </CardHeader>
+              <CardContent style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#f9fafb', padding: '16px', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' }}>
+                  {userEmail
+                    ? `Connected sender: ${userEmail}`
+                    : "Connect Gmail first. Once connected, this form sends from your logged-in Gmail account."}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <Label>Recipient</Label>
+                  <Input
+                    value={sendTo}
+                    onChange={(e) => setSendTo(e.target.value)}
+                    placeholder="recipient@example.com"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <Label>Subject</Label>
+                  <Input
+                    value={sendSubject}
+                    onChange={(e) => setSendSubject(e.target.value)}
+                    placeholder="Subject line"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <Label>Message</Label>
+                  <Textarea
+                    value={sendBody}
+                    onChange={(e) => setSendBody(e.target.value)}
+                    placeholder="Write your email here"
+                    style={{ minHeight: '180px', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <Button
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    opacity: !userEmail || isSending ? 0.7 : 1,
+                    cursor: !userEmail || isSending ? 'not-allowed' : 'pointer',
+                  }}
+                  onClick={handleQuickSend}
+                  disabled={!userEmail || isSending}
+                >
+                  {isSending ? "Sending..." : "Send Email"}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="builder" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>

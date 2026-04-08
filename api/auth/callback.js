@@ -4,6 +4,7 @@ import {
   getUserEmail,
   hasConfiguredGmailCredentials,
 } from '../_lib/googleAuth.js';
+import { createSessionCookie } from '../_lib/session.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -29,6 +30,16 @@ export default async function handler(req, res) {
     oauth2Client.setCredentials(tokens);
 
     const userEmail = await getUserEmail(oauth2Client);
+    res.setHeader(
+      'Set-Cookie',
+      createSessionCookie(
+        {
+          userEmail,
+          tokens,
+        },
+        req
+      )
+    );
     return res.redirect(createFrontendRedirect(req, userEmail));
   } catch (error) {
     console.error('Vercel auth callback error:', error);

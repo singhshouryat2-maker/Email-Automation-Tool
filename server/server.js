@@ -94,6 +94,16 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
+app.post('/api/auth/logout', (req, res) => {
+  const { userEmail } = req.body || {};
+
+  if (userEmail) {
+    tokenStore.delete(userEmail);
+  }
+
+  res.json({ success: true });
+});
+
 // Send Email
 app.post('/api/email/send', async (req, res) => {
   const { userEmail, to, subject, body, scheduleTime } = req.body;
@@ -135,11 +145,15 @@ async function sendEmailViaGmail(userEmail, to, subject, body, authClient) {
   const message = {
     raw: Buffer.from(
       `From: ${userEmail}\r\n` +
-      `To: ${to}\r\n` +
-      `Subject: ${subject}\r\n` +
-      `\r\n` +
-      `${body}`
-    ).toString('base64')
+        `To: ${to}\r\n` +
+        `Subject: ${subject}\r\n` +
+        `\r\n` +
+        `${body}`
+    )
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '')
   };
 
   const result = await gmail.users.messages.send({
