@@ -85,7 +85,7 @@ app.get('/api/auth/callback', async (req, res) => {
     tokenStore.set(userEmail, tokens);
 
     // Redirect to frontend with success
-    res.redirect(`${FRONTEND_ORIGIN}/auth-success?email=${userEmail}`);
+    res.redirect(`${FRONTEND_ORIGIN}/?email=${encodeURIComponent(userEmail)}`);
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).json({ error: 'Authentication failed' });

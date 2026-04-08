@@ -79,6 +79,20 @@ npm run dev
 ```
 Should see: `➜  Local:   http://localhost:5173/`
 
+### Optional: Deploy on Vercel
+
+For a deployed Vercel frontend, add these project environment variables:
+
+```bash
+GMAIL_CLIENT_ID=your_client_id_from_above
+GMAIL_CLIENT_SECRET=your_client_secret_from_above
+GMAIL_REDIRECT_URI=https://your-vercel-domain/api/auth/callback
+FRONTEND_ORIGIN=https://your-vercel-domain
+```
+
+Then add the same deployed callback URL in Google Cloud Console under
+**Authorized redirect URIs**.
+
 ### 5. Test It!
 
 1. Visit http://localhost:5173/

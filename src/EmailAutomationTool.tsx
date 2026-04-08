@@ -26,6 +26,8 @@ import {
   Check,
 } from "lucide-react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
 // Basic styled components using inline styles
 const Card = ({ children, style = {} }: any) => (
   <div style={{ borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', ...style }}>
@@ -797,7 +799,7 @@ export default function EmailAutomationTool() {
   // Handle Gmail login
   const handleGmailLogin = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/auth/url");
+      const response = await fetch(`${API_BASE_URL}/api/auth/url`);
       const data = await response.json();
       if (!response.ok || !data.authUrl) {
         throw new Error(data.error || "Failed to get Gmail auth URL.");

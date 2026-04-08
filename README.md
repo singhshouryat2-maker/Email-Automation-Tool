@@ -61,6 +61,21 @@ npm run dev
 **4. Open in Browser**
 Visit `http://localhost:5173` and click **"Connect Gmail"**
 
+### Deploying on Vercel
+
+If you want the deployed site to use **Connect Gmail**, add these environment
+variables in your Vercel project settings:
+
+```bash
+GMAIL_CLIENT_ID=your_id_from_google_cloud
+GMAIL_CLIENT_SECRET=your_secret_from_google_cloud
+GMAIL_REDIRECT_URI=https://your-vercel-domain/api/auth/callback
+FRONTEND_ORIGIN=https://your-vercel-domain
+```
+
+In Google Cloud Console, make sure the same deployed callback URL is added as
+an authorized redirect URI.
+
 ## 📖 Usage
 
 ### 1. Connect Your Gmail
